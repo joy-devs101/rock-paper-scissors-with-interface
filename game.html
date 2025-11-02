@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Rock • Paper • Scissors</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes pop{0%{transform:scale(.9);opacity:.6}70%{transform:scale(1.05);opacity:1}100%{transform:scale(1)}}
+      .pop{animation:pop .22s ease-out}
+      @keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}50%{box-shadow:0 0 0 12px rgba(34,197,94,0)}}
+      .glow-win{animation:pulse-glow .9s ease-out}
+      @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(2deg)}75%{transform:rotate(-2deg)}}
+      .wiggle{animation:wiggle .3s ease-in-out}
+    </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-b from-slate-900 to-black text-slate-100 flex flex-col items-center justify-center p-4">
+    <main class="w-full max-w-md space-y-4">
+      <header class="flex items-center justify-between">
+        <h1 class="text-xl font-semibold">Rock • Paper • Scissors</h1>
+        <button id="resetBtn" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded">Reset</button>
+      </header>
+
+      <section class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-800/70 rounded-xl p-4">
+          <p class="text-sm text-slate-300">You</p>
+          <div class="flex items-end gap-1">
+            <span id="playerScore" class="text-4xl font-bold">0</span>
+            <span class="text-slate-400 text-sm">/ <span id="targetDisplay">5</span></span>
+          </div>
+          <div class="h-2 bg-slate-700 rounded mt-2">
+            <div id="playerBar" class="h-2 bg-emerald-400 rounded w-0"></div>
+          </div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-4">
+          <p class="text-sm text-slate-300">Computer</p>
+          <div class="flex items-end gap-1">
+            <span id="computerScore" class="text-4xl font-bold">0</span>
+            <span class="text-slate-400 text-sm">/ <span id="targetDisplay2">5</span></span>
+          </div>
+          <div class="h-2 bg-slate-700 rounded mt-2">
+            <div id="computerBar" class="h-2 bg-rose-400 rounded w-0"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-slate-800/70 rounded-xl p-4 flex justify-between items-center">
+        <p class="text-sm">Target score</p>
+        <div class="flex items-center gap-2">
+          <button id="decTarget" class="w-8 h-8 bg-slate-900/70 rounded text-lg">−</button>
+          <input id="targetInput" type="number" value="5" min="1" max="50" class="w-14 text-center bg-slate-900/70 rounded" />
+          <button id="incTarget" class="w-8 h-8 bg-slate-900/70 rounded text-lg">+</button>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-3 gap-3">
+        <button data-move="r" class="choice-btn bg-slate-900/70 rounded-xl py-5 text-3xl">✊<div class="text-xs mt-1">Rock</div></button>
+        <button data-move="p" class="choice-btn bg-slate-900/70 rounded-xl py-5 text-3xl">✋<div class="text-xs mt-1">Paper</div></button>
+        <button data-move="s" class="choice-btn bg-slate-900/70 rounded-xl py-5 text-3xl">✌️<div class="text-xs mt-1">Scissors</div></button>
+      </section>
+
+      <section class="bg-slate-800/70 rounded-xl p-4">
+        <div class="flex justify-between text-sm">
+          <div>You chose <span id="playerChoice">—</span></div>
+          <div id="roundResult"></div>
+          <div>Computer <span id="computerChoice">—</span></div>
+        </div>
+      </section>
+
+      <details class="bg-slate-800/70 rounded-xl p-4">
+        <summary class="cursor-pointer">Round history</summary>
+        <ul id="history" class="mt-2 space-y-1 text-sm"></ul>
+      </details>
+    </main>
+
+    <div id="modal" class="fixed inset-0 hidden items-end justify-center">
+      <div id="backdrop" class="absolute inset-0 bg-black/60"></div>
+      <div class="relative w-full max-w-md bg-slate-900 rounded-t-3xl p-6 text-center">
+        <div id="modalBadge" class="inline-block px-3 py-1 text-xs rounded-full bg-emerald-600/20 text-emerald-300">Winner</div>
+        <h2 id="modalTitle" class="text-xl font-semibold mt-2"></h2>
+        <p id="modalMsg" class="text-sm text-slate-300 mt-1"></p>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <button id="closeModal" class="bg-slate-700 rounded py-2">Close</button>
+          <button id="playAgain" class="bg-emerald-600 rounded py-2">Play again</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const MOVES = { r:'✊', p:'✋', s:'✌️' };
+      const OUTCOME = { WIN:'win', LOSE:'lose', TIE:'tie' };
+      const els = {
+        playerScore:document.getElementById('playerScore'),
+        computerScore:document.getElementById('computerScore'),
+        playerBar:document.getElementById('playerBar'),
+        computerBar:document.getElementById('computerBar'),
+        playerChoice:document.getElementById('playerChoice'),
+        computerChoice:document.getElementById('computerChoice'),
+        roundResult:document.getElementById('roundResult'),
+        targetInput:document.getElementById('targetInput'),
+        decTarget:document.getElementById('decTarget'),
+        incTarget:document.getElementById('incTarget'),
+        targetDisplay:document.getElementById('targetDisplay'),
+        targetDisplay2:document.getElementById('targetDisplay2'),
+        history:document.getElementById('history'),
+        modal:document.getElementById('modal'),
+        modalBadge:document.getElementById('modalBadge'),
+        modalTitle:document.getElementById('modalTitle'),
+        modalMsg:document.getElementById('modalMsg'),
+        closeModal:document.getElementById('closeModal'),
+        playAgain:document.getElementById('playAgain'),
+      };
+      let player=0,computer=0,target=5,round=0;
+      function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+      function syncTarget(v){target=clamp(parseInt(v||'5',10),1,50);els.targetInput.value=target;els.targetDisplay.textContent=target;els.targetDisplay2.textContent=target;updateBars();}
+      function computerMove(){return ['r','p','s'][Math.floor(Math.random()*3)];}
+      function decide(p,c){if(p===c)return OUTCOME.TIE;if((p==='r'&&c==='s')||(p==='p'&&c==='r')||(p==='s'&&c==='p'))return OUTCOME.WIN;return OUTCOME.LOSE;}
+      function updateBars(){els.playerBar.style.width=(player/target*100)+'%';els.computerBar.style.width=(computer/target*100)+'%';}
+      function addHistory(p,c,r){const li=document.createElement('li');li.textContent=`#${round}: You ${MOVES[p]} vs ${MOVES[c]} - ${r}`;els.history.prepend?els.history.prepend(li):els.history.insertBefore(li,els.history.firstChild);}
+      function resultMsg(r){const map={win:['YOU WIN!!','text-emerald-300 glow-win'],lose:['YOU LOSE!!','text-rose-300 wiggle'],tie:["IT'S A TIE!!",'text-slate-300']};els.roundResult.textContent=map[r][0];els.roundResult.className=map[r][1];setTimeout(()=>els.roundResult.classList.remove('glow-win','wiggle'),600);}
+      function play(m){if(player>=target||computer>=target)return;round++;const cpu=computerMove();els.playerChoice.textContent=MOVES[m];els.computerChoice.textContent=MOVES[cpu];const r=decide(m,cpu);if(r==='win')player++;if(r==='lose')computer++;updateBars();els.playerScore.textContent=player;els.computerScore.textContent=computer;resultMsg(r);addHistory(m,cpu,r);checkEnd();}
+      function checkEnd(){if(player>=target||computer>=target){const win=player>=target;els.modal.classList.remove('hidden');els.modal.classList.add('flex');els.modalBadge.textContent=win?'Victory':'Defeat';els.modalTitle.textContent=win?`YOU REACHED ${target}!`:`COMPUTER REACHED ${target}.`;els.modalMsg.textContent=win?'You win the match!':'You lose the match.';}}
+      function reset(){player=0;computer=0;round=0;els.playerScore.textContent=0;els.computerScore.textContent=0;els.playerChoice.textContent='—';els.computerChoice.textContent='—';els.history.innerHTML='';updateBars();}
+      document.querySelectorAll('.choice-btn').forEach(b=>b.addEventListener('click',()=>play(b.dataset.move)));
+      document.getElementById('resetBtn').addEventListener('click',reset);
+      els.incTarget.addEventListener('click',()=>syncTarget(target+1));
+      els.decTarget.addEventListener('click',()=>syncTarget(target-1));
+      els.targetInput.addEventListener('input',e=>syncTarget(e.target.value));
+      function closeModal(){els.modal.classList.add('hidden');els.modal.classList.remove('flex');}
+      els.closeModal.addEventListener('click',closeModal);
+      els.playAgain.addEventListener('click',()=>{closeModal();reset();});
+      document.getElementById('backdrop').addEventListener('click',closeModal);
+      window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='r'||k==='p'||k==='s')play(k);if(k==='escape')reset();});
+      syncTarget(5);
+    </script>
+  </body>
+</html>
